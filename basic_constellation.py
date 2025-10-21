@@ -2,6 +2,7 @@ import numpy as np
 import os
 
 DEFAULT_FILE_PATH = "./PO_constellation"
+float_fmt = "%20.16e"
 
 def clean(FILE_PATH = DEFAULT_FILE_PATH):
     try:
@@ -12,7 +13,7 @@ def clean(FILE_PATH = DEFAULT_FILE_PATH):
 
 def export_vtk(x,y,z, FILE_PATH=DEFAULT_FILE_PATH):
 
-    from pyevtk.hl import unstructuredGridToVTK
+    from pyevtk.hl import unstructuredGridToVTK, pointsToVTK
     from pyevtk.vtk import VtkTriangle, VtkQuad
 
     connectivity = []
@@ -41,15 +42,20 @@ def export_vtk(x,y,z, FILE_PATH=DEFAULT_FILE_PATH):
 
     # print(x,connectivity, offset, cell_types)
     pointdata = {'ids':np.array([1,2,3,4,5,6,7])}
+
+    pointsToVTK(FILE_PATH, x, y, z, data = pointdata) 
+
     unstructuredGridToVTK(FILE_PATH, np.ascontiguousarray(x), np.ascontiguousarray(y), np.ascontiguousarray(z), connectivity = connectivity, offsets=offset, cell_types = cell_types, pointData=pointdata)
 
 def export_np(x,y,z, FILE_PATH=DEFAULT_FILE_PATH):
-    float_fmt = "%20.16e"
+    
     pts_array = np.vstack([np.array([1,2,3,4,5,6,7]),x,y,z]).T
     np.savetxt(FILE_PATH+".txt", pts_array, fmt="%d, "+float_fmt+", "+float_fmt+", "+float_fmt+"")
 
 def import_np(FILE_PATH=DEFAULT_FILE_PATH):
-    pass
+    data = np.loadtxt(FILE_PATH+".txt", delimiter=',')
+    print(data)
+    return data
 
 def run(outerscale = 5000e3, FILE_PATH=DEFAULT_FILE_PATH):
 
@@ -95,7 +101,28 @@ def run(outerscale = 5000e3, FILE_PATH=DEFAULT_FILE_PATH):
         print("Could not export in a vtk format, error was "+ str(e))
         raise e
 
+def fly(constellation = None, FILE_PATH=DEFAULT_FILE_PATH, suffix="_flight", start=[15*6371e3,0,0], end=[6*6371e3,0,0], steps=1000):
+    if constellation is None:
+        constellation = import_np(FILE_PATH)
+
+    deltas = np.linspace(start,end,steps)
+    print(constellation)
+    constellation_points = np.tile(constellation,(steps,1))
+
+    # print(constellation_points[:20,:])
+
+    path = np.zeros((steps*7,5))
+    for i in [0,1,2,3,4,5,6]:
+        path[i::7,-3:] = constellation_points[i::7,-3:]+deltas
+        path[i::7,1] = constellation_points[i::7,0]
+        path[i::7,0] = range(steps)
+
+    np.savetxt(FILE_PATH+suffix+".txt", path, header="time_index, spacecraft_id, x, y, z", fmt="%d, %d, "+float_fmt+", "+float_fmt+", "+float_fmt+"")
+
+    
+
 
 if __name__ == "__main__":
     FILE_PATH=DEFAULT_FILE_PATH
     run(FILE_PATH=DEFAULT_FILE_PATH)
+    fly(FILE_PATH=DEFAULT_FILE_PATH)
