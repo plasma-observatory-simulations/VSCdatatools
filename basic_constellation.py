@@ -57,7 +57,14 @@ def import_np(FILE_PATH=DEFAULT_FILE_PATH):
     print(data)
     return data
 
-def run(outerscale = 5000e3, FILE_PATH=DEFAULT_FILE_PATH):
+def rotation_matrix(pitch, roll, yaw):
+    m1 = [[np.cos(yaw), -np.sin(yaw), 0], [np.sin(yaw), np.cos(yaw), 0], [0,0,1]]
+    m2 = [[np.cos(pitch), 0, np.sin(pitch)], [0,1,0], [-np.sin(pitch), 0, np.cos(pitch)]]
+    m3 = [[1,0,0], [0, np.cos(roll), -np.sin(roll)], [0, np.sin(roll), np.cos(roll)]]
+
+    return np.matmul(m1, np.matmul(m2,m3))
+
+def run(outerscale = 5000e3, innerscale = 1000e3, pitch = 0, yaw = 0, roll = 0, FILE_PATH=DEFAULT_FILE_PATH):
 
     # Define vertices
     x = np.zeros(7)
@@ -65,7 +72,7 @@ def run(outerscale = 5000e3, FILE_PATH=DEFAULT_FILE_PATH):
     z = np.zeros(7)
 
     # inner tetrahedron size factor; required: < 1/4
-    f=1.0/5.0
+    f = innerscale / outerscale
 
     x[0], y[0], z[0] = 0.0, 0.0, 0.0
     x[1], y[1], z[1] = 1.0, 1.0, 0.0
@@ -88,6 +95,8 @@ def run(outerscale = 5000e3, FILE_PATH=DEFAULT_FILE_PATH):
     x *= outerscale
     y *= outerscale
     z *= outerscale
+
+    x, y, z = np.matmul(rotation_matrix(pitch, yaw, roll), [x,y,z])
 
     # This concludes setting the coordinates. Now these will be saved to various formats.
     try:
