@@ -90,19 +90,24 @@ def run(outerscale = 5000e3, FILE_PATH=DEFAULT_FILE_PATH):
     y *= outerscale
     z *= outerscale
 
+    # dummy velocities
+    vx = np.zeros(7)
+    vy = np.zeros(7)
+    vz = np.zeros(7)
+
     # This concludes setting the coordinates. Now these will be saved to various formats.
     try:
-        export_np(x,y,z, FILE_PATH=DEFAULT_FILE_PATH)
+        export_np(x,y,z,vx,vy,vz, FILE_PATH=DEFAULT_FILE_PATH)
     except Exception as e:
         print("Could not export in a numpy format, error was "+ str(e))
         raise e
     try:
-        export_vtk(x,y,z, FILE_PATH=DEFAULT_FILE_PATH)
+        export_vtk(x,y,z, vx,vy,vz, FILE_PATH=DEFAULT_FILE_PATH)
     except Exception as e:
         print("Could not export in a vtk format, error was "+ str(e))
         raise e
 
-def fly(constellation = None, FILE_PATH=DEFAULT_FILE_PATH, suffix="_flight", start=[15*6371e3,0,0], end=[6*6371e3,0,0], steps=1000):
+def fly(constellation = None, FILE_PATH=DEFAULT_FILE_PATH, suffix="_flight", start=[15*6371e3,0,0], end=[6*6371e3,0,0], steps=1000, time_over_segment=3600):
     if constellation is None:
         constellation = import_np(FILE_PATH)
 
@@ -111,14 +116,20 @@ def fly(constellation = None, FILE_PATH=DEFAULT_FILE_PATH, suffix="_flight", sta
     constellation_points = np.tile(constellation,(steps,1))
 
     # print(constellation_points[:20,:])
+    vx = (end[0]-start[0])/time_over_segment
+    vy = (end[1]-start[1])/time_over_segment
+    vz = (end[2]-start[2])/time_over_segment
 
-    path = np.zeros((steps*7,5))
+    path = np.zeros((steps*7,8))
     for i in [0,1,2,3,4,5,6]:
         path[i::7,2:5] = constellation_points[i::7,1:4]+deltas
         path[i::7,1] = constellation_points[i::7,0]
         path[i::7,0] = range(steps)
+    path[:,5] = vx
+    path[:,6] = vy
+    path[:,7] = vz
 
-    np.savetxt(FILE_PATH+suffix+".txt", path, header="time_index, spacecraft_id, x, y, z", fmt="%d, %d, "+float_fmt+", "+float_fmt+", "+float_fmt+"")
+    np.savetxt(FILE_PATH+suffix+".txt", path, header="time_index, spacecraft_id, x, y, z, vx, vy, vz", fmt="%d, %d"+6*(", "+float_fmt))
 
 
 
