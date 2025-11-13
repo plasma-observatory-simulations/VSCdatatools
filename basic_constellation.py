@@ -11,7 +11,7 @@ def clean(FILE_PATH = DEFAULT_FILE_PATH):
     except:
         pass
 
-def export_vtk(x,y,z, FILE_PATH=DEFAULT_FILE_PATH):
+def export_vtk(x,y,z,vx,vy,vz, FILE_PATH=DEFAULT_FILE_PATH):
 
     from pyevtk.hl import unstructuredGridToVTK, pointsToVTK
     from pyevtk.vtk import VtkTriangle, VtkQuad
@@ -41,16 +41,17 @@ def export_vtk(x,y,z, FILE_PATH=DEFAULT_FILE_PATH):
     cell_types = np.array(cell_types, dtype=np.uint8)
 
     # print(x,connectivity, offset, cell_types)
-    pointdata = {'ids':np.array([1,2,3,4,5,6,7])}
+    print(x)
+    pointdata = {'ids':np.array([1,2,3,4,5,6,7]), "Vx":np.ascontiguousarray(vx), "Vy":np.ascontiguousarray(vy), "Vz":np.ascontiguousarray(vz)}
 
-    pointsToVTK(FILE_PATH, x, y, z, data = pointdata) 
+    pointsToVTK(FILE_PATH, np.ascontiguousarray(x), np.ascontiguousarray(y), np.ascontiguousarray(z), data = pointdata) 
 
     unstructuredGridToVTK(FILE_PATH, np.ascontiguousarray(x), np.ascontiguousarray(y), np.ascontiguousarray(z), connectivity = connectivity, offsets=offset, cell_types = cell_types, pointData=pointdata)
 
-def export_np(x,y,z, FILE_PATH=DEFAULT_FILE_PATH):
+def export_np(x,y,z,vx,vy,vz, FILE_PATH=DEFAULT_FILE_PATH):
     
-    pts_array = np.vstack([np.array([1,2,3,4,5,6,7]),x,y,z]).T
-    np.savetxt(FILE_PATH+".txt", pts_array, fmt="%d, "+float_fmt+", "+float_fmt+", "+float_fmt+"")
+    pts_array = np.vstack([np.array([1,2,3,4,5,6,7]),x,y,z,vx,vy,vz]).T
+    np.savetxt(FILE_PATH+".txt", pts_array, fmt="%d"+6*(", "+float_fmt))
 
 def import_np(FILE_PATH=DEFAULT_FILE_PATH):
     data = np.loadtxt(FILE_PATH+".txt", delimiter=',')
@@ -113,13 +114,12 @@ def fly(constellation = None, FILE_PATH=DEFAULT_FILE_PATH, suffix="_flight", sta
 
     path = np.zeros((steps*7,5))
     for i in [0,1,2,3,4,5,6]:
-        path[i::7,-3:] = constellation_points[i::7,-3:]+deltas
+        path[i::7,2:5] = constellation_points[i::7,1:4]+deltas
         path[i::7,1] = constellation_points[i::7,0]
         path[i::7,0] = range(steps)
 
     np.savetxt(FILE_PATH+suffix+".txt", path, header="time_index, spacecraft_id, x, y, z", fmt="%d, %d, "+float_fmt+", "+float_fmt+", "+float_fmt+"")
 
-    
 
 
 if __name__ == "__main__":
